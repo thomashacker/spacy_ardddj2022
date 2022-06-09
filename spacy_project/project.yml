@@ -46,7 +46,7 @@ commands:
   - name: "streamlit"
     help: "Starte die Streamlit App um dein trainiertes Modell mit eigenen Queries zu testen."
     script:
-      - "python -m streamlit run scripts/app.py"
+      - "python -m streamlit run scripts/app.py --server.port 8889"
 
   - name: "reset"
     help: "Lösche die Datenbank in Prodigy."
