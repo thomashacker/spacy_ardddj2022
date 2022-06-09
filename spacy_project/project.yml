@@ -1,0 +1,56 @@
+title: "Annotation von Social Media Kommentaren in Prodigy"
+description: "Dieses spaCy Projekt enthält vorgefertige Prodigy Workflows, um Kommentare von derStandard.at zu annotieren."
+# Variables can be referenced across the project.yml using ${vars.var_name}
+vars:
+  database: "derStandard_textcat"
+  eval_split: 0.25
+  gpu_id: -1
+
+# These are the directories that the project needs. The project CLI will make
+# sure that they always exist.
+directories: ["assets", "data", "training", "configs"]
+
+# Assets that should be downloaded or available in the directory. We're shipping
+# them with the project, so they won't have to be downloaded. But the
+# 'project assets' command still lets you verify that the checksums match.
+assets:
+  - dest: "assets/derStandard_Kommentare.json"
+    description: "8.000 Kommentare aus dem [One Million Posts: A Data Set of German Online Discussions](https://ofai.github.io/million-post-corpus/) Datensatz"
+
+# Project commands, specified in a style similar to CI config files (e.g. Azure
+# pipelines). The name is the command name that lets you trigger the command
+# via "spacy project run [command] [path]". The help message is optional and
+# shown when executing "spacy project run [optional command] [path] --help".
+commands:
+  - name: "textcat"
+    help: "Annotiere Kommentare von Usern jenachdem ob diese angebracht oder unangebracht sind"
+    script:
+      - "python -m prodigy textcat.manual ${vars.database} assets/derStandard_Kommentare.json --label UNANGEBRACHT,ANGEBRACHT --exclusive"
+
+  - name: "train"
+    help: "Trainiere ein temporäres Modell um den Annotationsprozess zu beschleunigen."
+    script:
+      - "python -m prodigy train ./training --textcat ${vars.database} --eval-split ${vars.eval_split} --gpu-id ${vars.gpu_id} --lang de"
+
+  - name: "correct"
+    help: "Korrigiere Vorhersagen des temporären Modells."
+    script:
+      - "python -m prodigy textcat.correct ${vars.database} ./training/model-best assets/derStandard_Kommentare.json --label UNANGEBRACHT,ANGEBRACHT"
+
+  - name: "train_spacy"
+    help: "Trainiere ein Textcat Modell mit spaCy."
+    script:
+      - "python -m prodigy data-to-spacy ./data --textcat ${vars.database} --eval-split ${vars.eval_split}"
+      - "python -m spacy train configs/textcat.cfg --output ./training/ --paths.train data/train.spacy --paths.dev data/dev.spacy --gpu-id ${vars.gpu_id}"
+
+  - name: "streamlit"
+    help: "Starte die Streamlit App um dein trainiertes Modell mit eigenen Queries zu testen."
+    script:
+      - "python -m streamlit run scripts/app.py"
+
+  - name: "reset"
+    help: "Lösche die Datenbank in Prodigy."
+    script:
+      - "python -m prodigy drop ${vars.database}"
+
+
