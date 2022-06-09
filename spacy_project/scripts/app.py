@@ -20,4 +20,4 @@ if __name__ == "__main__":
         doc = st.session_state["model"](text)
 
         for cat in doc.cats:
-            st.markdown(f"**{cat}** : {round(doc.cats[cat],2)}%")
+            st.markdown(f"**{cat}** : {round(doc.cats[cat],2)*100}%")
